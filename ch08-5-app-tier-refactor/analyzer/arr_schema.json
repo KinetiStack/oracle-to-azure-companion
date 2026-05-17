@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kinetistack.io/schemas/arr/1.0.0",
+  "title": "Application Refactor Report",
+  "description": "Output of scan_app.py. Inventories Oracle-specific patterns in an application codebase that must be refactored before cutover to an Azure target (SQL DB / MI or PostgreSQL Flex). Consumed by the migration backlog and the CI gate (non-zero exit on HIGH-severity findings).",
+  "type": "object",
+  "required": [
+    "_artifact",
+    "root_scanned", "generated_at_utc", "arr_version",
+    "summary", "findings"
+  ],
+  "properties": {
+    "_artifact":        { "const": "arr" },
+    "root_scanned":     { "type": "string" },
+    "generated_at_utc": { "type": "string", "format": "date-time" },
+    "arr_version":      { "type": "string" },
+    "summary": {
+      "type": "object",
+      "required": ["total_findings", "files_with_findings",
+                   "by_severity", "by_pattern"],
+      "properties": {
+        "total_findings":      { "type": "integer", "minimum": 0 },
+        "files_with_findings": { "type": "integer", "minimum": 0 },
+        "by_severity": {
+          "type": "object",
+          "required": ["HIGH", "MEDIUM", "LOW"],
+          "properties": {
+            "HIGH":   { "type": "integer", "minimum": 0 },
+            "MEDIUM": { "type": "integer", "minimum": 0 },
+            "LOW":    { "type": "integer", "minimum": 0 }
+          }
+        },
+        "by_pattern": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "pattern", "severity",
+                     "matched_text", "remediation"],
+        "properties": {
+          "file":         { "type": "string" },
+          "line":         { "type": "integer", "minimum": 1 },
+          "pattern":      { "type": "string" },
+          "severity":     { "enum": ["HIGH", "MEDIUM", "LOW"] },
+          "matched_text": { "type": "string" },
+          "remediation":  { "type": "string" }
+        }
+      }
+    }
+  }
+}

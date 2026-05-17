@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kinetistack.io/schemas/amr/1.0.0",
+  "title": "Audit Migration Report",
+  "description": "Output of audit_translate.py and audit_validate.py. Each Oracle FGA / Unified Audit policy is paired with its target-engine equivalent and a fidelity classification so compliance teams can sign off on degradations explicitly.",
+  "type": "object",
+  "required": [
+    "_artifact",
+    "source_db", "target_engine",
+    "generated_at_utc", "amr_version",
+    "fga_policies_in", "target_audit_emitted",
+    "target_verified", "summary", "open_questions"
+  ],
+  "properties": {
+    "_artifact":        { "const": "amr" },
+    "source_db":        { "type": "string" },
+    "target_engine":    { "enum": ["mssql", "pg"] },
+    "generated_at_utc": { "type": "string", "format": "date-time" },
+    "amr_version":      { "type": "string" },
+    "fga_policies_in":  { "type": "array", "items": { "type": "object" } },
+    "target_audit_emitted": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_policy", "source_object", "target_statement",
+                     "fidelity", "degradation_notes"],
+        "properties": {
+          "source_policy":          { "type": ["string", "null"] },
+          "source_object":          { "type": "string" },
+          "source_column":          { "type": ["string", "null"] },
+          "source_statement_types": { "type": ["string", "null"] },
+          "target_statement":       { "type": "string" },
+          "fidelity":               { "enum": ["EQUIVALENT", "DEGRADED", "UNSUPPORTED"] },
+          "degradation_notes":      { "type": "string" }
+        }
+      }
+    },
+    "target_verified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["audit_name", "exists_on_target", "matches_emitted"],
+        "properties": {
+          "audit_name":        { "type": "string" },
+          "exists_on_target":  { "type": "boolean" },
+          "matches_emitted":   { "type": "boolean" },
+          "verification_note": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_policies", "equivalent_count",
+                   "degraded_count", "unsupported_count"],
+      "properties": {
+        "total_policies":     { "type": "integer", "minimum": 0 },
+        "equivalent_count":   { "type": "integer", "minimum": 0 },
+        "degraded_count":     { "type": "integer", "minimum": 0 },
+        "unsupported_count":  { "type": "integer", "minimum": 0 }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}

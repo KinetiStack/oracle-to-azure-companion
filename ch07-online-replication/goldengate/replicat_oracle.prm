@@ -1,0 +1,43 @@
+--------------------------------------------------------------------------------
+-- replicat_oracle.prm - apply trail file to Oracle target
+-- (Oracle Database@Azure or Oracle on Azure IaaS -- the "lift" path).
+--
+-- Uses Integrated Replicat: applies in-database via inbound server.
+-- Best concurrency on a 19c+ target.
+--------------------------------------------------------------------------------
+
+REPLICAT rep_hrp
+
+USERIDALIAS ogg_replicat DOMAIN OracleGoldenGate
+
+-- Integrated Replicat (vs Coordinated or Classic)
+-- INTEGRATEDPARAMS forwarded to the inbound server.
+INTEGRATEDPARAMS(parallelism 8, max_sga_size 1024)
+
+-- ============================================================================
+-- *** CONFLICT HANDLING - DO NOT SHIP THIS FILE WITHOUT REVIEWING THIS BLOCK ***
+-- ============================================================================
+-- Default Replicat behavior on any data conflict (FK violation, duplicate PK,
+-- missing-row UPDATE, etc.) is to ABEND -- stop the entire process. On a
+-- 24x7 stream this is a P1 incident at 03:00.
+--
+-- HANDLECOLLISIONS is appropriate during the *initial-load gap window* (from
+-- the MRR's SCN until the live stream catches up): it auto-resolves common
+-- collisions caused by Replicat re-applying rows the bulk seed already
+-- contains. REMOVE it once lag is < 1 second AND a full reconcile.py run
+-- shows PASS, otherwise it will mask real divergence indefinitely.
+HANDLECOLLISIONS
+
+-- Quarantine path: rows that still error after HANDLECOLLISIONS removal
+-- land in the discard file rather than ABENDing the process.
+DISCARDFILE ./dirrpt/rep_hrp.dsc, APPEND, MEGABYTES 1000
+REPERROR (DEFAULT, DISCARD)
+
+-- DDL replication. Same caveat as the Extract; production often disables.
+DDL INCLUDE MAPPED OBJTYPE 'TABLE'
+DDLERROR DEFAULT IGNORE RETRYOP MAXRETRIES 3 RETRYDELAY 5
+
+REPORTCOUNT EVERY 60 SECONDS, RATE
+
+-- Mapping (1:1; rename schema here if target schema differs)
+MAP HRPRO.*, TARGET HRPRO.*;

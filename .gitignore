@@ -1,0 +1,38 @@
+# Local environment
+.env
+.env.*
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Manuscript artifacts (these belong to the manuscript repo, not the companion)
+build/
+*.pdf
+*.epub
+
+# Output that scripts produce locally — buyers regenerate from source
+output/
+tmp/
+*.tar.gz
+*.sig
+
+# Lab credentials should never be committed
+oracle-wallet/
+.netrc

@@ -1,0 +1,42 @@
+# Oracle Database 19c Enterprise Edition — official image from Oracle Container Registry.
+#
+# PREREQUISITES (one-time, on the assessment workstation):
+#   1. Create an Oracle SSO account (free) at https://www.oracle.com/cloud/sign-in.html
+#   2. Visit https://container-registry.oracle.com/ords/ocr/ba/database/enterprise
+#      and click "Continue" to accept the terms of use for the Enterprise image.
+#   3. docker login container-registry.oracle.com
+#      (use your Oracle SSO username and password)
+#
+# Image tag pinned to 19.3.0.0; the chapter's discovery scripts target 19c semantics.
+# First boot takes 5-10 minutes (seeds CDB and the ORCLPDB1 pluggable database).
+#
+# Run:
+#   ORACLE_PWD='<strong-password>' docker compose up -d
+#
+# Tear down (data preserved):
+#   docker compose down
+#
+# Tear down (data wiped):
+#   docker compose down -v
+services:
+  oracle19c:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+    container_name: ora19c-lab
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PDB: ORCLPDB1
+      ORACLE_PWD: ${ORACLE_PWD:?ORACLE_PWD must be set in the environment}
+      ORACLE_CHARACTERSET: AL32UTF8
+    volumes:
+      - ora19c-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "/opt/oracle/checkDBStatus.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 30
+      start_period: 10m
+    shm_size: 1gb
+
+volumes:
+  ora19c-data:

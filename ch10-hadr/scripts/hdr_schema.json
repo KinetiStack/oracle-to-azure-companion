@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kinetistack.io/schemas/hdr/1.0.0",
+  "title": "HA/DR Assessment Report",
+  "description": "Output of dr_drill.py. Captures measured RTO/RPO from an actual disaster-recovery drill against the migrated target. The signed artifact compliance and audit teams consume to verify the HA/DR posture matches the contract -- not the marketing-page numbers.",
+  "type": "object",
+  "required": [
+    "_artifact",
+    "hdr_version", "generated_at_utc", "engine",
+    "primary_host", "secondary_host", "drill"
+  ],
+  "properties": {
+    "_artifact":        { "const": "hdr" },
+    "hdr_version":      { "type": "string" },
+    "generated_at_utc": { "type": "string", "format": "date-time" },
+    "engine":           { "enum": ["oracle", "mssql", "pg"] },
+    "primary_host":     { "type": "string" },
+    "secondary_host":   { "type": "string" },
+    "drill": {
+      "type": "object",
+      "required": [
+        "drill_id", "started_at_utc", "completed_at_utc",
+        "rto_seconds_measured", "rto_seconds_target", "rto_status",
+        "rpo_seconds_target", "rpo_status",
+        "marker_present_on_promoted", "notes"
+      ],
+      "properties": {
+        "drill_id":              { "type": "string" },
+        "started_at_utc":        { "type": "string", "format": "date-time" },
+        "completed_at_utc":      { "type": "string", "format": "date-time" },
+        "rto_seconds_measured":  { "type": "number", "minimum": 0 },
+        "rpo_seconds_measured":  { "type": ["number", "null"], "minimum": 0 },
+        "rto_seconds_target":    { "type": "number", "minimum": 0 },
+        "rpo_seconds_target":    { "type": "number", "minimum": 0 },
+        "rto_status":            { "enum": ["PASS", "FAIL"] },
+        "rpo_status":            { "enum": ["PASS", "FAIL", "UNKNOWN"] },
+        "marker_present_on_promoted": { "type": "boolean" },
+        "notes":                 { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

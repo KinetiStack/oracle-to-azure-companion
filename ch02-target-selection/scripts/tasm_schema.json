@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kinetistack.io/schemas/tasm_recommendation/1.0.0",
+  "title": "TASM Recommendation",
+  "description": "Output document produced by tasm_evaluator.py. Consumed by Chapter 3 (TCO & Sizing) and the migration program's architecture board.",
+  "type": "object",
+  "required": [
+    "_artifact",
+    "mab_run_id",
+    "evaluated_at_utc",
+    "evaluator_version",
+    "options",
+    "workload_fingerprint",
+    "feature_signal",
+    "code_surface",
+    "primary_recommendation",
+    "secondary_recommendation",
+    "storage_tier",
+    "refactor_estimate",
+    "open_questions"
+  ],
+  "properties": {
+    "_artifact":         { "const": "tasm" },
+    "mab_run_id":        { "type": "string", "description": "The MAB run_id this recommendation was derived from." },
+    "evaluated_at_utc":  { "type": "string", "format": "date-time" },
+    "evaluator_version": { "type": "string" },
+    "source_db": {
+      "type": "object",
+      "description": "Pass-through of the MAB source fingerprint."
+    },
+    "options": {
+      "type": "object",
+      "required": ["quantile", "prefer_open_source", "cannot_refactor"],
+      "properties": {
+        "quantile":           { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "prefer_open_source": { "type": "boolean" },
+        "cannot_refactor":    { "type": "boolean" }
+      }
+    },
+    "workload_fingerprint": {
+      "type": "object",
+      "required": [
+        "peak_read_iops", "peak_write_iops",
+        "peak_read_mbps", "peak_write_mbps", "peak_redo_mbps",
+        "avg_cpu_pct", "peak_pga_mb", "quantile"
+      ],
+      "properties": {
+        "peak_read_iops":  { "type": "integer", "minimum": 0 },
+        "peak_write_iops": { "type": "integer", "minimum": 0 },
+        "peak_read_mbps":  { "type": "number",  "minimum": 0 },
+        "peak_write_mbps": { "type": "number",  "minimum": 0 },
+        "peak_redo_mbps":  { "type": "number",  "minimum": 0 },
+        "avg_cpu_pct":     { "type": "number",  "minimum": 0, "maximum": 100 },
+        "peak_pga_mb":     { "type": "number",  "minimum": 0 },
+        "quantile":        { "type": "number",  "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    },
+    "feature_signal": {
+      "type": "object",
+      "required": [
+        "rac_required", "spatial_present", "java_in_db_present",
+        "high_blocker_count", "red_feature_count", "amber_feature_count",
+        "regulatory_blockers"
+      ],
+      "properties": {
+        "rac_required":        { "type": "boolean" },
+        "spatial_present":     { "type": "boolean" },
+        "java_in_db_present":  { "type": "boolean" },
+        "high_blocker_count":  { "type": "integer", "minimum": 0 },
+        "red_feature_count":   { "type": "integer", "minimum": 0 },
+        "amber_feature_count": { "type": "integer", "minimum": 0 },
+        "regulatory_blockers": { "type": "array",   "items": { "type": "string" } }
+      }
+    },
+    "code_surface": {
+      "type": "object",
+      "required": [
+        "total_plsql_loc", "package_body_count", "trigger_count",
+        "hotspot_count", "fga_policy_count"
+      ],
+      "properties": {
+        "total_plsql_loc":    { "type": "integer", "minimum": 0 },
+        "package_body_count": { "type": "integer", "minimum": 0 },
+        "trigger_count":      { "type": "integer", "minimum": 0 },
+        "hotspot_count":      { "type": "integer", "minimum": 0 },
+        "fga_policy_count":   { "type": "integer", "minimum": 0 }
+      }
+    },
+    "primary_recommendation": {
+      "type": "object",
+      "required": ["target", "confidence", "rationale"],
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": [
+            "Oracle Database@Azure",
+            "Oracle on Azure IaaS (single-instance)",
+            "Oracle on Azure IaaS RAC (FlashGrid)",
+            "Azure SQL Managed Instance",
+            "Azure Database for PostgreSQL Flexible Server"
+          ]
+        },
+        "confidence": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
+        "rationale":  { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
+    "secondary_recommendation": {
+      "type": "object",
+      "required": ["target", "rationale"],
+      "properties": {
+        "target":    { "type": "string" },
+        "rationale": { "type": "string" }
+      }
+    },
+    "storage_tier": {
+      "type": "object",
+      "required": ["tier", "rationale"],
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": [
+            "Exadata Smart Storage (Oracle Database@Azure native)",
+            "Azure Premium SSD v2",
+            "Azure Ultra Disk",
+            "Azure NetApp Files (Ultra service level)"
+          ]
+        },
+        "rationale":            { "type": "string" },
+        "peak_iops_required":   { "type": "integer", "minimum": 0 },
+        "peak_mbps_required":   { "type": "number",  "minimum": 0 }
+      }
+    },
+    "refactor_estimate": {
+      "type": "object",
+      "required": ["effort_band", "calendar_weeks", "plsql_loc", "hotspot_objects"],
+      "properties": {
+        "effort_band":     { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "EXTREME"] },
+        "calendar_weeks":  { "type": "string" },
+        "plsql_loc":       { "type": "integer", "minimum": 0 },
+        "hotspot_objects": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

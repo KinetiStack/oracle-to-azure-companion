@@ -1,0 +1,42 @@
+--------------------------------------------------------------------------------
+-- replicat_mi.prm - apply trail to Azure SQL Managed Instance.
+--
+-- Requires "Oracle GoldenGate for SQL Server" (the heterogeneous Replicat
+-- distribution). Connects to MI via ODBC Driver 18 + a DSN-less SQLAUTH or
+-- AAD authentication block configured in the GG credential store.
+--
+-- MI-specific differences from the Oracle-target Replicat:
+--   - No INTEGRATEDPARAMS (no inbound server on MI)
+--   - DBOPTIONS controls bulk insert and batching
+--   - DDL replication is NOT supported by GG for SQL Server; schema changes
+--     must be applied to MI out-of-band (Ch.11 release process).
+--------------------------------------------------------------------------------
+
+REPLICAT rep_hrp
+
+-- ODBC connection alias from credential store
+SOURCEDB UserIdAlias mi_replicat_alias DOMAIN OracleGoldenGate
+
+-- Target schema mapping. The Ch.4 SSMA conversion produced 'dbo' on the
+-- target side; we map HRPRO -> dbo here. Production engagements sometimes
+-- keep a HRPRO schema in MI for cleanliness; pick one and be consistent.
+DBOPTIONS BATCHTRANSOPS 100, NOSUPPRESSTRIGGERS, GETUPDATEBEFORES
+SETENV (NLS_LANG = "AMERICAN_AMERICA.AL32UTF8")
+
+-- ============================================================================
+-- *** CONFLICT HANDLING ***
+-- See replicat_oracle.prm for the full HANDLECOLLISIONS rationale.
+-- ============================================================================
+HANDLECOLLISIONS
+
+DISCARDFILE ./dirrpt/rep_hrp.dsc, APPEND, MEGABYTES 1000
+REPERROR (DEFAULT, DISCARD)
+
+REPORTCOUNT EVERY 60 SECONDS, RATE
+
+-- Map: HRPRO source -> dbo target (matches the Ch.4 SSMA convention)
+MAP HRPRO.DEPARTMENT,       TARGET dbo.DEPARTMENT;
+MAP HRPRO.JOB_GRADE,        TARGET dbo.JOB_GRADE;
+MAP HRPRO.EMPLOYEE,         TARGET dbo.EMPLOYEE,        COLMAP (USEDEFAULTS);
+MAP HRPRO.EMPLOYEE_HISTORY, TARGET dbo.EMPLOYEE_HISTORY,COLMAP (USEDEFAULTS);
+MAP HRPRO.PAYROLL_RUN,      TARGET dbo.PAYROLL_RUN;

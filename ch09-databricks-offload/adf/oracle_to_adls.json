@@ -1,0 +1,49 @@
+{
+  "_comment": "ADF pipeline EXCERPT for the JDBC-source / ADLS-Gen2-sink pattern. NOT importable as-is: the referenced linked services (Oracle, ADLS) and datasets (DS_Oracle_HRPRO, DS_ADLS_Landing_EmployeeHistory) are defined separately per environment and not shipped in this excerpt. Production engagements (1) precede this Copy activity with a Lookup activity that runs `SELECT MIN(history_id) AS lo, MAX(history_id) AS hi FROM hrpro.employee_history` and (2) bind the partition bounds to @activity('LookupBounds').output.firstRow.lo / .hi -- NOT to hardcoded constants. The values below are illustrative; you MUST replace them at deploy time via a Lookup or pipeline parameters.",
+  "name": "PL_HRPRO_Bronze_Landing",
+  "properties": {
+    "activities": [
+      {
+        "name": "LookupBounds",
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "OracleSource",
+            "oracleReaderQuery": "SELECT MIN(history_id) AS lo, MAX(history_id) AS hi FROM hrpro.employee_history"
+          },
+          "dataset":  { "referenceName": "DS_Oracle_HRPRO", "type": "DatasetReference" },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "Copy_HRPRO_EmployeeHistory",
+        "type": "Copy",
+        "dependsOn": [ { "activity": "LookupBounds", "dependencyConditions": ["Succeeded"] } ],
+        "policy": { "timeout": "0.12:00:00", "retry": 3, "retryIntervalInSeconds": 60 },
+        "typeProperties": {
+          "source": {
+            "type": "OracleSource",
+            "oracleReaderQuery": "SELECT history_id, emp_id, effective_date, end_date, dept_id, grade_id, salary, change_reason FROM hrpro.employee_history",
+            "partitionOption": "DynamicRange",
+            "partitionSettings": {
+              "partitionColumnName": "history_id",
+              "partitionLowerBound":  "@{activity('LookupBounds').output.firstRow.lo}",
+              "partitionUpperBound":  "@{activity('LookupBounds').output.firstRow.hi}"
+            }
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings", "blockSizeInMB": 100 },
+            "formatSettings": { "type": "ParquetWriteSettings" }
+          },
+          "translator": { "type": "TabularTranslator", "typeConversion": true },
+          "parallelCopies": 16
+        },
+        "inputs":  [ { "referenceName": "DS_Oracle_HRPRO", "type": "DatasetReference" } ],
+        "outputs": [ { "referenceName": "DS_ADLS_Landing_EmployeeHistory", "type": "DatasetReference" } ]
+      }
+    ],
+    "annotations": [],
+    "lastPublishTime": "2026-05-16T00:00:00Z"
+  }
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Variables file consumed by SSMAforOracleConsole.exe -v ssma_variables.xml
+
+  Fill in the placeholders below from your Ch.3.5 lab provisioning output:
+    - $AzureSqlFqdn$       => sqlServerFqdn      output of Bicep deploy
+    - $AzureSqlDatabase$   => 'labdb'
+    - $AzureSqlUser$       => 'labadmin'
+    - $AzureSqlPassword$   => $LAB_ADMIN_PASSWORD used during Ch.3.5 provisioning
+
+  Do NOT commit a populated copy of this file to source control. Use a
+  per-engineer copy or a CI-injected one.
+-->
+<variables>
+  <variable name="ProjectFolder"      value="C:\ssma\HRPro"/>
+  <variable name="ReportFolder"       value="C:\ssma\HRPro\reports"/>
+
+  <variable name="OracleHost"         value="host.docker.internal"/>
+  <variable name="OraclePort"         value="1521"/>
+  <variable name="OracleService"      value="ORCLPDB1"/>
+  <variable name="OracleUser"         value="hrpro"/>
+  <variable name="OraclePassword"     value="REPLACE_WITH_HRPRO_PWD"/>
+
+  <variable name="AzureSqlFqdn"       value="REPLACE_WITH_BICEP_OUTPUT.database.windows.net"/>
+  <variable name="AzureSqlDatabase"   value="labdb"/>
+  <variable name="AzureSqlUser"       value="labadmin"/>
+  <variable name="AzureSqlPassword"   value="REPLACE_WITH_LAB_ADMIN_PASSWORD"/>
+</variables>

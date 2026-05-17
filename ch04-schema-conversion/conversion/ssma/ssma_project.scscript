@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SSMA for Oracle console script - automation for the HR-Pro lab.
+
+  Tested with SSMA for Oracle 9.x console mode on Windows 10/11 and Windows
+  Server 2022. Invoke via:
+      "C:\Program Files\Microsoft SQL Server Migration Assistant for Oracle\
+       Bin\SSMAforOracleConsole.exe" \
+          -s ssma_project.scscript \
+          -v ssma_variables.xml
+
+  Variable references use the $VarName$ syntax expanded from ssma_variables.xml.
+  Element names follow the SSMA Console Reference (Microsoft Learn). Adjust to
+  the schema your SSMA version ships if a future release changes the surface.
+-->
+<ssma-script-file xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <script>
+    <!-- 1. Create or open the SSMA project -->
+    <create-new-project
+        project-folder="$ProjectFolder$"
+        project-name="HRPro_Migration"
+        overwrite-if-exists="true"
+        project-type="sql-azure"/>
+
+    <!-- 2. Connect to source Oracle and reverse-engineer HRPRO -->
+    <connect-source-database server="ora-src"/>
+    <load-and-convert-metadata
+        object-name="HRPRO"
+        object-type="Schemas"/>
+
+    <!-- 3. Connect to target Azure SQL Database -->
+    <connect-target-database server="sqlazure-tgt"/>
+
+    <!-- 4. Map HRPRO -> dbo (lab convention); production typically keeps the
+            source schema name as a target schema -->
+    <map-schema source-schema="HRPRO" sql-server-schema="dbo"/>
+
+    <!-- 5. Generate the assessment report -->
+    <generate-assessment-report
+        object-name="HRPRO"
+        object-type="Schemas"
+        assessment-report-folder="$ReportFolder$"
+        assessment-report-overwrite="true"/>
+
+    <!-- 6. Convert the schema to T-SQL -->
+    <convert-schema
+        object-name="HRPRO"
+        object-type="Schemas"
+        conversion-report-folder="$ReportFolder$"
+        conversion-report-overwrite="true"/>
+
+    <!-- 7. Synchronize converted objects into the Azure SQL Database.
+            on-error="report-total-as-warning" keeps the run going through
+            individual object failures so the book's diff helper can see
+            the full result set. Production uses "fail-script" instead. -->
+    <synchronize-target
+        object-name="HRPRO"
+        object-type="Schemas"
+        on-error="report-total-as-warning"/>
+
+    <!-- 8. Save the SSMA project so future runs can re-open it -->
+    <save-project/>
+  </script>
+
+  <server-connections>
+    <oracle-server name="ora-src">
+      <connection-provider>OracleClient</connection-provider>
+      <connection-mode>standard-mode</connection-mode>
+      <data-source>$OracleHost$:$OraclePort$/$OracleService$</data-source>
+      <user-name>$OracleUser$</user-name>
+      <password>$OraclePassword$</password>
+    </oracle-server>
+
+    <sql-server name="sqlazure-tgt">
+      <server-type>SQL Azure</server-type>
+      <server>$AzureSqlFqdn$</server>
+      <database>$AzureSqlDatabase$</database>
+      <user-name>$AzureSqlUser$</user-name>
+      <password>$AzureSqlPassword$</password>
+      <encrypt>true</encrypt>
+      <trust-server-certificate>false</trust-server-certificate>
+    </sql-server>
+  </server-connections>
+
+</ssma-script-file>

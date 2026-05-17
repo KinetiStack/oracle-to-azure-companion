@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kinetistack.io/schemas/orr/1.0.0",
+  "title": "Offload Readiness Report",
+  "description": "Output of orr.py. Per-table recommendation about whether to offload to Databricks and at which Medallion layer (Bronze / Silver / Gold). Consumed by the modernization-program backlog -- treat as advisory; final scoping happens with the BI / analytics team.",
+  "type": "object",
+  "required": [
+    "_artifact",
+    "mab_dir", "generated_at_utc", "orr_version",
+    "summary", "tables", "open_questions"
+  ],
+  "properties": {
+    "_artifact":        { "const": "orr" },
+    "mab_dir":          { "type": "string" },
+    "generated_at_utc": { "type": "string", "format": "date-time" },
+    "orr_version":      { "type": "string" },
+    "summary": {
+      "type": "object",
+      "required": ["total_objects", "by_layer"],
+      "properties": {
+        "total_objects": { "type": "integer", "minimum": 0 },
+        "by_layer": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["owner", "table_name", "object_type",
+                     "recommended_layer", "reasons"],
+        "properties": {
+          "owner":               { "type": "string" },
+          "table_name":          { "type": "string" },
+          "object_type":         { "type": "string" },
+          "is_partitioned":      { "type": "boolean" },
+          "row_estimate":        { "type": ["integer", "null"], "minimum": 0 },
+          "has_fga":             { "type": "boolean" },
+          "is_materialized_view":{ "type": "boolean" },
+          "recommended_layer": {
+            "enum": ["SKIP", "SILVER_ONLY", "BRONZE_SILVER",
+                     "FULL_MEDALLION", "GOLD_REPLACEMENT"]
+          },
+          "reasons":             { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

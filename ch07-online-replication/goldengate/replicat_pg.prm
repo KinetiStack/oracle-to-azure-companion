@@ -1,0 +1,51 @@
+--------------------------------------------------------------------------------
+-- replicat_pg.prm - apply trail to Azure DB for PostgreSQL Flexible Server.
+--
+-- Requires "Oracle GoldenGate for PostgreSQL". Connects via libpq (psql
+-- driver) configured in the GG credential store. Some workloads instead
+-- route via "GoldenGate for Big Data" -> Kafka -> Kafka Connect JDBC sink
+-- when intermediate buffering / transformation is part of the pipeline.
+--
+-- PG-specific differences:
+--   - No DDL replication support (apply schema changes out-of-band)
+--   - JSON / JSONB types require explicit COLMAP transforms when source is
+--     a UDT (Ch.4 § 4.4's address_t flattened to JSONB).
+--   - Case folding: PG defaults to lowercase; mapping uses lowercase target
+--     identifiers consistently.
+--------------------------------------------------------------------------------
+
+REPLICAT rep_hrp
+
+SOURCEDB UserIdAlias pg_replicat_alias DOMAIN OracleGoldenGate
+
+DBOPTIONS BATCHTRANSOPS 100, GETUPDATEBEFORES
+SETENV (PGCLIENTENCODING = "UTF8")
+
+-- ============================================================================
+-- *** CONFLICT HANDLING *** (see replicat_oracle.prm)
+-- ============================================================================
+HANDLECOLLISIONS
+
+DISCARDFILE ./dirrpt/rep_hrp.dsc, APPEND, MEGABYTES 1000
+REPERROR (DEFAULT, DISCARD)
+
+REPORTCOUNT EVERY 60 SECONDS, RATE
+
+-- Map: HRPRO source -> hrpro target (PG case-folds to lowercase).
+--
+-- Ch.4 ora2pg.conf (post-audit) emits EMPLOYEE.HOME_ADDRESS as a PG
+-- composite type matching the source address_t UDT. With matching column
+-- structures on both sides, USEDEFAULTS is sufficient.
+--
+-- If Ch.4 is reconfigured to emit JSONB instead (uncommenting the
+-- MODIFY_TYPE in ora2pg.conf), this MAP needs a source-side view that
+-- serializes address_t to JSON, and the COLMAP becomes:
+--     COLMAP (USEDEFAULTS,
+--             home_address = @STRCAT('{"street":"', street, '","city":"', city, '",...}'))
+-- but emit the view DDL on the source first; do not concatenate raw UDT
+-- field accesses in the COLMAP.
+MAP HRPRO.DEPARTMENT,       TARGET hrpro.department;
+MAP HRPRO.JOB_GRADE,        TARGET hrpro.job_grade;
+MAP HRPRO.EMPLOYEE,         TARGET hrpro.employee,         COLMAP (USEDEFAULTS);
+MAP HRPRO.EMPLOYEE_HISTORY, TARGET hrpro.employee_history, COLMAP (USEDEFAULTS);
+MAP HRPRO.PAYROLL_RUN,      TARGET hrpro.payroll_run;

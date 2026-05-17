@@ -1,0 +1,105 @@
+// =============================================================================
+// hypercare_dashboard.kql -- Log Analytics KQL queries for the first 72h
+// post-cutover. Save as a Workbook in the Azure Portal; pin the four queries
+// below as separate tiles in the war-room dashboard.
+//
+// Required tables (verify your Diagnostic Settings route to these):
+//   AzureMetrics       -- DB CPU, IOPS, connection counts (both target families)
+//   AppExceptions      -- Application Insights exceptions (NOT AppEvents)
+//   AppRequests        -- App Insights request telemetry; failed requests
+//   AzureSQLActivity   -- Azure SQL DB / MI diagnostic logs (Query Store, etc.)
+//   AzureDiagnostics   -- Azure DB for PostgreSQL Flex slow-query logs
+// =============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tile 1 -- Database CPU on the target (every 1 min, last 24h)
+// Works for both Azure SQL (MI/DB) and PostgreSQL Flex.
+// ─────────────────────────────────────────────────────────────────────────────
+AzureMetrics
+| where TimeGenerated > ago(24h)
+| where ResourceProvider in ("MICROSOFT.SQL", "MICROSOFT.DBFORPOSTGRESQL")
+| where MetricName == "cpu_percent"
+| summarize avg_cpu = avg(Average), max_cpu = max(Maximum) by bin(TimeGenerated, 1m)
+| render timechart
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tile 2 -- Application error rate (every 5 min, last 24h)
+// Application Insights schema (since 2020): exceptions live in AppExceptions,
+// failed requests in AppRequests. NOT AppEvents with Type=='Exception'.
+// SeverityLevel is a typed column on AppExceptions, NOT Properties.severityLevel.
+//
+// Page on-call when this exceeds 2x baseline for >= 5 minutes.
+// ─────────────────────────────────────────────────────────────────────────────
+union
+    ( AppExceptions
+        | where TimeGenerated > ago(24h)
+        | where SeverityLevel >= 3
+        | project TimeGenerated, kind = "exception" ),
+    ( AppRequests
+        | where TimeGenerated > ago(24h)
+        | where Success == false
+        | project TimeGenerated, kind = "failed_request" )
+| summarize errors = count() by bin(TimeGenerated, 5m), kind
+| render timechart
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tile 3 -- Slow queries (last 1h) across both target families
+// SQL Server family: AzureSQLActivity with Category=QueryStoreRuntimeStatistics
+// PostgreSQL Flex:   AzureDiagnostics with PostgreSQLLogs category (slow log).
+// Each side is a SEPARATE log surface; we union them.
+// ─────────────────────────────────────────────────────────────────────────────
+union
+    ( AzureSQLActivity
+        | where TimeGenerated > ago(1h)
+        | where Category == "QueryStoreRuntimeStatistics"
+        | extend duration_ms = todouble(Properties.duration_ms)
+        | where duration_ms > 200
+        | project TimeGenerated,
+                  engine     = "azure_sql",
+                  query_id   = tostring(Properties.query_id),
+                  duration_ms,
+                  executions = tolong(Properties.execution_count) ),
+    ( AzureDiagnostics
+        | where TimeGenerated > ago(1h)
+        | where ResourceProvider == "MICROSOFT.DBFORPOSTGRESQL"
+        | where Category == "PostgreSQLLogs"
+        | where Message has "duration:"
+        | extend duration_ms = toreal(extract(@"duration: ([0-9.]+) ms", 1, Message))
+        | where duration_ms > 200
+        | project TimeGenerated,
+                  engine     = "pg_flex",
+                  query_id   = tostring(extract(@"statement: (.{0,80})", 1, Message)),
+                  duration_ms,
+                  executions = toint(1) )
+| top 20 by duration_ms desc
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tile 4 -- Connection-pool utilization vs SKU ceiling
+// MI / SQL DB:  active_connections is the current open count (gauge).
+// PG Flex:      active_connections is the current open count (gauge).
+//   (Both engines expose this as a real-time gauge.)
+//
+// IMPORTANT: connection_successful on Azure SQL is a per-interval RATE
+// (number of new sessions established), NOT the open count. Don't average
+// it with active_connections -- they're different signals.
+// ─────────────────────────────────────────────────────────────────────────────
+AzureMetrics
+| where TimeGenerated > ago(24h)
+| where ResourceProvider in ("MICROSOFT.SQL", "MICROSOFT.DBFORPOSTGRESQL")
+| where MetricName == "active_connections"
+| summarize active = avg(Average), peak = max(Maximum) by bin(TimeGenerated, 1m), Resource
+| render timechart
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALERTS to wire alongside the dashboard (configure via Azure Monitor):
+//   1. CPU > 80% for 5 minutes -> WARN on-call
+//   2. CPU > 90% for 5 minutes -> PAGE on-call
+//   3. App error rate (Tile 2) > 2x baseline for 5 minutes -> PAGE
+//   4. Replication lag > 60s post-cutover (should never occur) -> PAGE
+//   5. active_connections > 85% of SKU cap for 10 minutes -> WARN
+//      (Cap depends on tier; threshold is workload-driven.)
+// ─────────────────────────────────────────────────────────────────────────────

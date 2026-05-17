@@ -1,0 +1,61 @@
+{
+  "_comment": "Escalation matrix template. Customize per organization. Distribute by name + Slack handle + phone + backup. Maintained as a JSON document for programmatic alert routing (Azure Monitor Action Groups consume this same shape). Ships in a deliberately failing state -- run validate_escalation_matrix.py to surface every field still on a placeholder. The matrix MUST pass against escalation_matrix_schema.json before T-24h sign-off.",
+  "version":         "1.0.0",
+  "last_updated":    "REPLACE_BEFORE_USE",
+  "cutover_window":  "TBD",
+  "war_room": {
+    "bridge_url":    "TBD (Teams / Zoom / Google Meet)",
+    "backup_bridge": "TBD",
+    "chat_channel":  "#cutover-war-room"
+  },
+  "roles": {
+    "cutover_lead": {
+      "primary":   { "name": "TBD", "slack": "@", "phone": "TBD" },
+      "backup":    { "name": "TBD", "slack": "@", "phone": "TBD" }
+    },
+    "architecture_board_observer": {
+      "primary":   { "name": "TBD", "slack": "@", "phone": "TBD" }
+    },
+    "dba_oncall": {
+      "primary":   { "name": "TBD", "slack": "@", "phone": "TBD" },
+      "backup":    { "name": "TBD", "slack": "@", "phone": "TBD" }
+    },
+    "application_oncall": {
+      "primary":   { "name": "TBD", "slack": "@", "phone": "TBD" },
+      "backup":    { "name": "TBD", "slack": "@", "phone": "TBD" }
+    },
+    "platform_oncall": {
+      "primary":   { "name": "TBD", "slack": "@", "phone": "TBD" }
+    },
+    "compliance_oncall": {
+      "primary":   { "name": "TBD", "slack": "@", "phone": "TBD" }
+    }
+  },
+  "escalation_paths": [
+    {
+      "trigger":   "Cutover paused for any reason",
+      "first":     "cutover_lead",
+      "second":    "architecture_board_observer",
+      "decision":  "abort or resume"
+    },
+    {
+      "trigger":   "P1 incident in the first 4h post-cutover",
+      "first":     "dba_oncall",
+      "second":    "cutover_lead",
+      "third":     "architecture_board_observer",
+      "decision":  "rollback or hold"
+    },
+    {
+      "trigger":   "Application error rate > 2x baseline",
+      "first":     "application_oncall",
+      "second":    "platform_oncall",
+      "decision":  "diagnose source (target / network / app code) and route to owner"
+    },
+    {
+      "trigger":   "Compliance / audit issue surfaces",
+      "first":     "compliance_oncall",
+      "second":    "architecture_board_observer",
+      "decision":  "hold + remediate before T+72h sign-off"
+    }
+  ]
+}

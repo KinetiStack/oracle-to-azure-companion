@@ -1,0 +1,34 @@
+{
+  "_caveat": "EXAMPLE PRICING ONLY. Refresh against the Azure Retail Prices API before any formal sizing submission. Rates differ by region, currency, and contract; numbers below are placeholders for the East US region used in the book's worked example.",
+  "dictionary_version": "2026-Q2-EXAMPLE",
+  "region":             "eastus",
+  "priced_at":          "2026-05-01",
+  "compute": {
+    "Standard_E16ds_v5":    { "vcpus":  16, "memory_gib":  128, "payg_usd_hour": 0.756, "ri_3yr_usd_hour": 0.302 },
+    "Standard_E32ds_v5":    { "vcpus":  32, "memory_gib":  256, "payg_usd_hour": 1.512, "ri_3yr_usd_hour": 0.605 },
+    "Standard_E64ds_v5":    { "vcpus":  64, "memory_gib":  512, "payg_usd_hour": 3.024, "ri_3yr_usd_hour": 1.210 },
+    "Standard_E96ds_v5":    { "vcpus":  96, "memory_gib":  672, "payg_usd_hour": 4.536, "ri_3yr_usd_hour": 1.814 },
+    "Standard_M64ls_v2":    { "vcpus":  64, "memory_gib": 1000, "payg_usd_hour": 5.040, "ri_3yr_usd_hour": 2.016 },
+    "Standard_M128s_v2":    { "vcpus": 128, "memory_gib": 2048, "payg_usd_hour": 9.144, "ri_3yr_usd_hour": 3.658 },
+    "Standard_M128ms_v2":   { "vcpus": 128, "memory_gib": 3892, "payg_usd_hour": 14.40, "ri_3yr_usd_hour": 5.760 }
+  },
+  "storage": {
+    "premium_ssd_v2": {
+      "capacity_gib_month_usd":    0.077,
+      "iops_provisioned_usd_month": 0.005,
+      "mbps_provisioned_usd_month": 0.040
+    },
+    "ultra_disk": {
+      "capacity_gib_month_usd":    0.1071,
+      "iops_provisioned_usd_month": 0.0074,
+      "mbps_provisioned_usd_month": 0.0741
+    },
+    "anf_ultra": {
+      "capacity_gib_month_usd":    0.39
+    }
+  },
+  "network": {
+    "egress_first_5gb_free": true,
+    "egress_per_gb_usd":     0.087
+  }
+}
