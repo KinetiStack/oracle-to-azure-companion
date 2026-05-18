@@ -4,7 +4,7 @@ Companion code for **Migrating Oracle Databases to Azure Cloud** (KinetiStack Pr
 
 This is the **public** companion repository. Every script printed in the book is here, verbatim, so readers can copy-paste and run. The book's editorial Code Truth Principle requires every example to be runnable; this repository is how that promise is kept.
 
-For **premium content** — full lab data, production-grade Bicep modules, walkthrough recordings, and future-edition updates — see the gated companion at `oracle-to-azure-premium`. Access is granted to verified book purchasers via the claim portal at <https://code.kinetistack.co/access>.
+For **premium content** — full lab data, production-grade Bicep modules, walkthrough recordings, and future-edition updates — see the gated companion at `oracle-to-azure-premium`. Access is granted to verified book purchasers via the claim portal at <https://kinetistack.co/access>.
 
 ## Repository layout
 
@@ -65,7 +65,7 @@ The private companion repo `oracle-to-azure-premium` adds:
 - **Reference engagement artifacts** — signed example MAB/TASM/BoM/.../DRR JSONs from an anonymized real engagement, with field-level annotations.
 - **v1.1+ updates** — chapter addenda and corrections as Azure GA cycles and Oracle Database@Azure region expansion happen.
 
-Claim premium access: <https://code.kinetistack.co/access> (free for verified book purchasers, regardless of channel).
+Claim premium access: <https://kinetistack.co/access> (free for verified book purchasers, regardless of channel).
 
 ---
 
