@@ -46,6 +46,15 @@ SKIPPED=0
 shopt -s nullglob
 for chapter_dir in "${MANUSCRIPT_ROOT}"/ch*-*/; do
   chapter_name="$(basename "${chapter_dir}")"
+
+  # Public repo only mirrors ch01 as a runnable teaser. Everything
+  # else lives in the gated oracle-to-azure-premium repo.
+  if [[ "${chapter_name}" != ch01-* ]]; then
+    echo "  [skipped] ${chapter_name} (premium-only chapter)"
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+
   dest="${HERE}/${chapter_name}"
   mkdir -p "${dest}"
 
